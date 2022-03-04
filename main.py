@@ -1,4 +1,6 @@
-
+from email.mime import audio
+from tkinter import ttk
+from tkinter import *
 L = ['a','b','c','d','e','f','g','h','i','j','k','l','m','n','ñ','o','p','q','r','s','t','u','v','w','x','y','z']
 D = [0,1,2,3,4,5,6,7,8,9]
 tokens = { 'reserved': 0 ,'identificadores' : 0, 'parentesisApertura': 0, 'parentesisCierre': 0, 'signo':0, 'separador':0, 'tipoDato': 0 }
@@ -6,26 +8,58 @@ reservedBasic = ['supr-struct','new-db','supr-db','take']
 reservedAdvance = ['new-struct','supr-struct','upd', '>']
 tiposDato = ['int','varchar', 'bool', 'double']
 
+def deleteValuesToken():
+    for i,clave in enumerate(tokens):
+        if tokens.get(clave) > 0:
+            tokens[clave] = 0
+def waiting():
+    message.config(text='Waiting for MIBA sentence')
+
+def outputMessageError():
+    message.config(text='[ERROR] : Check your MIBA Syntax')
+
+def outputSuccessMessage():
+    message.config(text='[OK] : MIBA Sintax Correct')
+
+def showTokens():
+    tokensCount.config(text=f'{tokens}')
+
+def principal(sentence):
+    aux = sentence.strip().split(' ')
+    aux.reverse()
+    sentencia = aux
+    if sentencia[-1] in reservedBasic:
+        BasicSentences(sentencia)
+    elif sentencia[-1] in reservedAdvance:
+        advanceSetence(sentencia)
+    else:
+        outputMessageError()
+        showTokens()
+
 def BasicSentences(sentencia):
     pila = ['$','R','L']
     verify = False
     bandera = True
-    entrada = list(sentencia)
-    entrada.reverse()
-    if entrada.pop() in reservedBasic:
+    print(f'[{sentencia[-1]}]')
+    # entrada = list(sentencia)
+    # entrada.reverse()
+    if sentencia.pop() in reservedBasic:
         tokens['reserved']+=1
     else: 
+        outputMessageError()
         print('ERROR : No se encuentra palabra reservada')
+        showTokens()
         bandera = False
     
-    if bandera:
-        sentence = entrada
+    if bandera and len(sentencia)>=1:
+        sentence = sentencia
         name = list(sentence.pop())
         print('Entrada : ',' '.join(name))
         name.reverse()
         print(pila)
         for i in reversed(name):
-            if not i in L or i in D:
+            # if not i in L or i in D:
+            if not i.isalnum():
                 print('Error : Caracter no válido (',i,')')
                 new = ''.join(reversed(name))
                 sentence.append(new)
@@ -43,19 +77,26 @@ def BasicSentences(sentencia):
         if verify:
             tokens['identificadores'] += 1
             pila.clear(),pila.append('$')
-        else: tokens['identificadores'] = 0
-        print('\nEntrada Final : ',sentence,' Pila : ',pila,'\nTokens : ',tokens)
+            outputSuccessMessage()
+            showTokens()
+        else:
+            outputMessageError()
+            showTokens()
+            print('\nEntrada Final : ',sentence,' Pila : ',pila,'\nTokens : ',tokens)
+    else: 
+        outputMessageError()
+        showTokens()
 
 def advanceSetence(sentencia):
     bandera = True
     verify = False
     pila = ['$',')','T','R','L','(','R','L']
-    entrada = list(sentencia)
-    entrada.reverse()
+    # entrada = list(sentencia)
+    # entrada.reverse()
     print('\n########################## SENTENCIA MIBA ###############################\n')
-    if entrada[-1] in 'new-struct':
+    if sentencia[-1] in 'new-struct':
         tokens['reserved'] +=1
-        print('Palabra reservada: ',entrada.pop(), ' [OK]')
+        print('Palabra reservada: ',sentencia.pop(), ' [OK]')
     else: 
         print('ERROR : No se encuentra palabra reservada')
         bandera = False
@@ -63,7 +104,7 @@ def advanceSetence(sentencia):
     # print('ENTRADA ADVANCE ', entrada)
     #
     if bandera: 
-        nombre = list(entrada.pop())
+        nombre = list(sentencia.pop())
         nombre.reverse()
         print('\nNombre de la tabla : ',''.join(reversed(nombre)))
         # print('Pila gramática : ',pila,'\n')
@@ -71,7 +112,7 @@ def advanceSetence(sentencia):
             if not i.isalnum():
                 print('Caracter inválido -> ',i)
                 new = ''.join(reversed(nombre))
-                entrada.append(new)
+                sentencia.append(new)
                 break
             else:
                 nombre.pop(),pila.pop()
@@ -87,11 +128,12 @@ def advanceSetence(sentencia):
                         print(f' R - > L R')
         if verify:
             tokens['identificadores']+=1
-            firstParent(entrada, pila) 
+            firstParent(sentencia, pila) 
         else:
             print('Error Sintaxis inválida')
             print(pila)
-            print(tokens)
+            outputMessageError()
+            showTokens()
 
 def firstParent(entrada,pila):
     print('###################################################################################')
@@ -111,6 +153,8 @@ def firstParent(entrada,pila):
         checkName(entrada, pila)
     else: 
         print('ERROR: Se espera parentesis de apertura ',entrada)
+        outputMessageError()
+        showTokens()
         print(pila)
         print(f'{tokens}')
 
@@ -120,18 +164,20 @@ def endParentesis(entrada,pila):
     pila.clear()
     # print('final',entrada[-1][-1])
     if entrada[-1] == ')':
-        # print('parentesisCierre suma \n Ejecución Ok')
         tokens['parentesisCierre']+=1
         entrada.pop()
         pila.append('$'),entrada.append('$')
-        # print(f'Entrada end : {entrada} Pila end : {pila}')
         print(tokens)
+        outputSuccessMessage()
+        showTokens()
     elif entrada[-1][-1] == ')':
         tokens['parentesisCierre']+=1
         entrada.pop()
         entrada.append('$')
         pila.append('$')
         print(tokens)
+        outputSuccessMessage()
+        showTokens()
         # print('parentesisCierre suma \n Ejecución Ok')
         # print(f'Entrada end : {entrada} Pila end2 : {pila}')
     else: 
@@ -170,6 +216,8 @@ def checkName(entrada, pila): # atri int, algo bool)
         checkDato(entrada, pila)
     else: 
         print('Error : Nombre inválido')
+        outputMessageError()
+        showTokens()
         print(pila)
         print(tokens)
     # else: tokens['identificadores'] = 0
@@ -211,6 +259,8 @@ def checkDato(entrada, pila): #int, algo bool)5
                 checkName(entrada,pila)
             else:
                 print('No se encontró un tipo')
+                outputMessageError()
+                showTokens()
                 print(pila)
                 print(tokens)
         else:
@@ -225,10 +275,48 @@ def checkDato(entrada, pila): #int, algo bool)5
                     print('Tipo no valido: ' ,entrada[-1])
                     print(pila)
                     print(tokens)
+                    outputMessageError()
+                    showTokens()
             else: 
                 tokens['tipoDato']+=1
                 endParentesis(entrada,pila)
-# BasicSentences(('take nombre $'.strip(' ').lower().split(' ')))
 
-advanceSetence('new-struct b (nombre bool)'.lower().strip().split(' '))
+def run():
+    root = Tk()
+    root.title("MIBA SQL Analizador")
+    root.geometry('1500x500')
+
+    lbl = Label(root,text="Ingresa la sentencia de MIBA",font=('Roboto 16 ') )
+    lbl.pack(pady=(100,0))
+    text=Entry(root, font = ('Roboto 15'),width=50)
+    text.insert(END, "")
+    text.pack(pady=30)
+    message2 = Label(root,font=('Roboto 14 bold'), text="Waiting for MIBA sentence...")
+    message2.pack()
+
+
+    def getValues():
+        message2.config(text='')
+        deleteValuesToken()
+        sentence = text.get()
+        aux = sentence.split(' ')
+        if not len(aux) == 1:
+            principal(sentence)
+        else: 
+            # deleteValuesToken()
+            outputMessageError()
+            showTokens()
+
+    btn = Button(root,text='Analizar',bg='green',fg='white' ,padx=70,pady=8,command=getValues)
+    btn.pack(pady=30)
+    global message
+    global tokensCount
+    message = Label(root,font=('Roboto 14 bold'), text="")
+    message.pack()
+    tokensCount = Label(root,font=('Roboto 14 bold'), text='')
+    tokensCount.pack()
+    root.mainloop()
+
+run()
+
 
