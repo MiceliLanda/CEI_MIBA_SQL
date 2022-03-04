@@ -1,5 +1,3 @@
-tiposDato = ['int','varchar', 'bool', 'double']
-
 def advanceSetence(sentencia):
     pila = ['$',')','T','R','L','(','R','L']
     entrada = list(sentencia)
@@ -30,8 +28,6 @@ def advanceSetence(sentencia):
                     pila.clear(),pila.extend(list('$)TRL('))
                     print('Pila gramática : ',pila,'\n')
                 else: print('R - > L')
-    # pila.pop(),pila.pop()
-    # print('LO QUE SE VA AL firstParent -> ',entrada , pila)
     firstParent(entrada, pila)  
 
 def firstParent(entrada,pila):
@@ -73,7 +69,6 @@ def checkName(entrada, pila): # atri int, algo bool)
     name.reverse()
     print(pila)
     for i in reversed(name):
-        # if not i in L or i in D:
         if not i.isalnum():
             print('Error : Caracter no válido (',i,')')
             new = ''.join(reversed(name))
