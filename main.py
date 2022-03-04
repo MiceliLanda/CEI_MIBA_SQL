@@ -66,7 +66,7 @@ def advanceSetence(sentencia):
         nombre = list(entrada.pop())
         nombre.reverse()
         print('\nNombre de la tabla : ',''.join(reversed(nombre)))
-        print('Pila gramática : ',pila,'\n')
+        # print('Pila gramática : ',pila,'\n')
         for i in reversed(nombre):
             if not i.isalnum():
                 print('Caracter inválido -> ',i)
@@ -76,12 +76,12 @@ def advanceSetence(sentencia):
             else:
                 nombre.pop(),pila.pop()
                 print('Actual : ',''.join(reversed(nombre)), '  - Verificando : ',i,'  [OK]')
-                print('Pila en función : ',pila)
+                # print('Pila en función : ',pila)
                 if pila.pop() == 'R':
                     pila.extend(list('RL'))
                     if not nombre:
                         pila.clear(),pila.extend(list('$)TRL('))
-                        print('Pila gramática : ',pila,'\n')
+                        # print('Pila gramática : ',pila,'\n')
                         verify = True
                     else:
                         print(f' R - > L R')
@@ -90,9 +90,8 @@ def advanceSetence(sentencia):
             firstParent(entrada, pila) 
         else:
             print('Error Sintaxis inválida')
+            print(pila)
             print(tokens)
-
-
 
 def firstParent(entrada,pila):
     print('###################################################################################')
@@ -112,12 +111,14 @@ def firstParent(entrada,pila):
         checkName(entrada, pila)
     else: 
         print('ERROR: Se espera parentesis de apertura ',entrada)
+        print(pila)
         print(f'{tokens}')
 
 def endParentesis(entrada,pila):
+    print('###################################################################################')
+    print('Parentesis Cierre: ',entrada[-1])
     pila.clear()
-    print('final',entrada[-1][-1])
-
+    # print('final',entrada[-1][-1])
     if entrada[-1] == ')':
         # print('parentesisCierre suma \n Ejecución Ok')
         tokens['parentesisCierre']+=1
@@ -134,7 +135,9 @@ def endParentesis(entrada,pila):
         # print('parentesisCierre suma \n Ejecución Ok')
         # print(f'Entrada end : {entrada} Pila end2 : {pila}')
     else: 
-        print('ERROR : Se espera un parenteis de cierre\n',tokens)
+        pila.append('$')
+        print(pila)
+        print('\nERROR : Se espera un parenteis de cierre\n',tokens)
 
 def checkName(entrada, pila): # atri int, algo bool)
     print('######################################## Name ##########################################')
@@ -151,13 +154,13 @@ def checkName(entrada, pila): # atri int, algo bool)
             verify = False
             break
         else:
-            name.pop()
             pila.pop()
+            name.pop()
             print('Actual :',''.join(reversed(name)), '  - Verificando : ',i,' [OK]')
-            print('Pila en función : ',pila)
+            # print('Pila en función : ',pila)
             if pila.pop() == 'R':
                 pila.extend(list('RL'))
-                print('Pila Gramática : ',pila)
+                # print('Pila Gramática : ',pila)
         verify = True
     if verify:
         tokens['identificadores'] += 1
@@ -167,10 +170,10 @@ def checkName(entrada, pila): # atri int, algo bool)
         checkDato(entrada, pila)
     else: 
         print('Error : Nombre inválido')
+        print(pila)
         print(tokens)
     # else: tokens['identificadores'] = 0
 def checkSeparador(entrada,pila):
-    """ CHECAR QUE AUMENTE EL CONTADOR DE SEPARADOR EN EL DE TOKENS """
     # print('Entrada chekSperador : ',entrada[-1], ' Pila check separador : ',pila)
     if len(entrada[-1]) > 1 and entrada[-1][-1] == ',': #CUANDO LLEGA CON TIPO DE DATO
         clean = entrada[-1][0:len(entrada[-1])-1]
@@ -207,19 +210,25 @@ def checkDato(entrada, pila): #int, algo bool)5
                 # print('size :',len(entrada), entrada)
                 checkName(entrada,pila)
             else:
-                print('No se encontró un tipo, eliminado y Termina')
+                print('No se encontró un tipo')
+                print(pila)
+                print(tokens)
         else:
             # print('QUE ES ENTRADA ',entrada[-1])
-            if entrada[-1] in tiposDato:
-                tokens['tipoDato']+=1
-                entrada.pop(),pila.pop(),pila.extend(list('TRL'))
-                # print('Entra al else porque no es el ultimo : ',entrada,'\nPIla: ',pila)
-                checkName(entrada,pila)
+            if not len(entrada)< 2:
+                if entrada[-1] in tiposDato:
+                    tokens['tipoDato']+=1
+                    entrada.pop(),pila.pop(),pila.extend(list('TRL'))
+                    # print('Entra al else porque no es el ultimo : ',entrada,'\nPIla: ',pila)
+                    checkName(entrada,pila)
+                else: 
+                    print('Tipo no valido: ' ,entrada[-1])
+                    print(pila)
+                    print(tokens)
             else: 
-                print('Tipo no valido: ' ,entrada[-1])
-                print(tokens)
+                tokens['tipoDato']+=1
+                endParentesis(entrada,pila)
 # BasicSentences(('take nombre $'.strip(' ').lower().split(' ')))
 
-advanceSetence('new-struct algo (a int, b double, c varchars)'.lower().strip().split(' '))
+advanceSetence('new-struct b (nombre bool)'.lower().strip().split(' '))
 
-# 1 reservada , 4 identificadores , 3 tipos , 2 separadores
