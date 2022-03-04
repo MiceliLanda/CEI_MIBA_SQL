@@ -5,7 +5,7 @@ L = ['a','b','c','d','e','f','g','h','i','j','k','l','m','n','ñ','o','p','q','r
 D = [0,1,2,3,4,5,6,7,8,9]
 tokens = { 'reserved': 0 ,'identificadores' : 0, 'parentesisApertura': 0, 'parentesisCierre': 0, 'signo':0, 'separador':0, 'tipoDato': 0 }
 reservedBasic = ['supr-struct','new-db','supr-db','take']
-reservedAdvance = ['new-struct','supr-struct','upd', '>']
+reservedAdvance = ['new-struct','supr-struct','upd', '>','f']
 tiposDato = ['int','varchar', 'bool', 'double']
 
 def deleteValuesToken():
@@ -40,10 +40,11 @@ def BasicSentences(sentencia):
     pila = ['$','R','L']
     verify = False
     bandera = True
-    print(f'[{sentencia[-1]}]')
+    # print(f'Pila entrada: {sentencia} \nPila gramática: {pila}\n')
     # entrada = list(sentencia)
     # entrada.reverse()
-    if sentencia.pop() in reservedBasic:
+    if sentencia[-1] in reservedBasic:
+        print('Palabra reservada: ',sentencia.pop(),'\n')
         tokens['reserved']+=1
     else: 
         outputMessageError()
@@ -54,7 +55,7 @@ def BasicSentences(sentencia):
     if bandera and len(sentencia)>=1:
         sentence = sentencia
         name = list(sentence.pop())
-        print('Entrada : ',' '.join(name))
+        # print('Entrada : ',' '.join(name))
         name.reverse()
         print(pila)
         for i in reversed(name):
@@ -76,9 +77,10 @@ def BasicSentences(sentencia):
             verify = True
         if verify:
             tokens['identificadores'] += 1
-            pila.clear(),pila.append('$')
+            pila.clear(),pila.append('$'),sentence.append('$')
             outputSuccessMessage()
             showTokens()
+            print('\nEntrada Final : ',sentence,' Pila : ',pila,'\nTokens : ',tokens)
         else:
             outputMessageError()
             showTokens()
@@ -94,7 +96,7 @@ def advanceSetence(sentencia):
     # entrada = list(sentencia)
     # entrada.reverse()
     print('\n########################## SENTENCIA MIBA ###############################\n')
-    if sentencia[-1] in 'new-struct':
+    if sentencia[-1] in reservedAdvance:
         tokens['reserved'] +=1
         print('Palabra reservada: ',sentencia.pop(), ' [OK]')
     else: 
@@ -160,67 +162,122 @@ def firstParent(entrada,pila):
 
 def endParentesis(entrada,pila):
     print('###################################################################################')
-    print('Parentesis Cierre: ',entrada[-1])
+    print('Parentesis Cierre')
     pila.clear()
     # print('final',entrada[-1][-1])
     if entrada[-1] == ')':
         tokens['parentesisCierre']+=1
         entrada.pop()
-        pila.append('$'),entrada.append('$')
+        pila.insert(0,'$'),entrada.append('$')
         print(tokens)
         outputSuccessMessage()
         showTokens()
+        print()
     elif entrada[-1][-1] == ')':
         tokens['parentesisCierre']+=1
         entrada.pop()
         entrada.append('$')
         pila.append('$')
-        print(tokens)
         outputSuccessMessage()
         showTokens()
-        # print('parentesisCierre suma \n Ejecución Ok')
+        print('\nEntrada Final : ',entrada,' Pila : ',pila,'\n')
+        # print('parentesisCierre suma \n Ejecución Ok')j
         # print(f'Entrada end : {entrada} Pila end2 : {pila}')
     else: 
-        pila.append('$')
-        print(pila)
-        print('\nERROR : Se espera un parenteis de cierre\n',tokens)
-
-def checkName(entrada, pila): # atri int, algo bool)
-    print('######################################## Name ##########################################')
-    sentence = entrada
-    name = list(sentence.pop())
-    print('Entrada : ',''.join(name))
-    name.reverse()
-    print(pila)
-    for i in reversed(name):
-        if not i.isalnum():
-            print('Error : Caracter no válido (',i,')')
-            new = ''.join(reversed(name))
-            sentence.append(new)
-            verify = False
-            break
-        else:
-            pila.pop()
-            name.pop()
-            print('Actual :',''.join(reversed(name)), '  - Verificando : ',i,' [OK]')
-            # print('Pila en función : ',pila)
-            if pila.pop() == 'R':
-                pila.extend(list('RL'))
-                # print('Pila Gramática : ',pila)
-        verify = True
-    if verify:
-        tokens['identificadores'] += 1
-        pila.pop(),pila.pop()
-        # print('\nEntrada Name eliminado : ',sentence,' Pila Name: ',pila)
-        # return entrada, pila
-        checkDato(entrada, pila)
-    else: 
-        print('Error : Nombre inválido')
+        pila.append(')'),pila.insert(0,'$')
+        entrada.pop()
+        entrada.insert(0,'$')
+        print('\nEntrada Final : ',entrada,' Pila : ',pila,'\n')
+        print('\nERROR : Se espera un parenteis de cierre\n')
         outputMessageError()
         showTokens()
+
+def checkName(entrada, pila): # atri int, algo bool)
+    if '=' in entrada[-1]:
+        pila.clear(),pila.extend(list('$)RL=RL>RL=RL'))
+        checknameFix(entrada,pila)
+    else:
+        print('######################################## Name ##########################################')
+        sentence = entrada
+        name = list(sentence.pop())
+        print('Entrada :',''.join(name))
+        name.reverse()
         print(pila)
-        print(tokens)
+        for i in reversed(name):
+            if not i.isalnum():
+                print('Error : Caracter no válido (',i,')')
+                new = ''.join(reversed(name))
+                sentence.append(new)
+                verify = False
+                break
+            else:
+                pila.pop()
+                name.pop()
+                print('Actual :',''.join(reversed(name)), '  - Verificando : ',i,' [OK]')
+                # print('Pila en función : ',pila)
+                if pila.pop() == 'R':
+                    pila.extend(list('RL'))
+                    # print('Pila Gramática : ',pila)
+            verify = True
+        if verify:
+            tokens['identificadores'] += 1
+            pila.pop(),pila.pop()
+            # print('\nEntrada Name eliminado : ',sentence,' Pila Name: ',pila)
+            # return entrada, pila
+            checkDato(entrada, pila)
+        else: 
+            print('Error : Nombre inválido')
+            outputMessageError()
+            showTokens()
+            print(pila)
+            print(tokens)
     # else: tokens['identificadores'] = 0
+
+def checknameFix(entrada, pila):
+    if '=' in entrada[-1]:
+        checkSigno(entrada,pila)
+    else:
+        print('_########## ##################################### Name Fix-Struct ###############################################')
+        # print('entrada',pila)
+        sentence = entrada
+        name = list(entrada.pop())
+        name.reverse()
+        for i in reversed(name):
+            if not i.isalnum():
+                print('Error : Caracter no válido (',i,')')
+                new = ''.join(reversed(name))
+                sentence.append(new)
+                verify = False
+                break
+            else:
+                pila.pop()
+                name.pop()
+                print('Actual :',''.join(reversed(name)), '  - Verificando : ',i,' [OK]')
+                # print('Pila en función : ',pila)
+                if pila.pop() == 'R':
+                    pila.extend(list('RL'))
+                        # print('Pila Gramática
+            verify = True
+        if verify:
+            tokens['identificadores'] += 1
+            pila.pop(),pila.pop()
+            # print('\nEntrada Name eliminado : ',sentence,' Pila Name: ',pila)
+            # return entrada, pila
+            # checkDato(entrada, pila)
+            checkSigno(entrada,pila)
+        else: 
+            print('Error : Nombre inválido')
+            outputMessageError()
+            showTokens()
+            print(pila)
+            print(tokens)
+        print('entrada despues del proceso ',sentence,'  ',entrada )
+
+
+
+""" fix-struct nombre (name=valor)  -> fix-struct nombre upd ( nombre = valor )"""
+
+""" HACER UNA COMPARACION PARA VER SU SE MANDA A CHECAR DATO O A VERIFICAR EL VALOR DEL NAME DESPUES DEL IGUAL """
 def checkSeparador(entrada,pila):
     # print('Entrada chekSperador : ',entrada[-1], ' Pila check separador : ',pila)
     if len(entrada[-1]) > 1 and entrada[-1][-1] == ',': #CUANDO LLEGA CON TIPO DE DATO
@@ -234,6 +291,23 @@ def checkSeparador(entrada,pila):
         entrada.pop()
         # print('SALI DE SEPARADOR PARA ENTRAR A CHECKDATO 2-> ',entrada)
         checkDato(entrada, pila)
+
+""" Función que debe evaluar si tiene signo = """
+
+def checkSigno(entrada, pila):
+    if entrada[-1] == '=':
+        tokens['signo']+=1
+        # checkName(entrada,pila)
+    else:
+        aux = []
+        aux.extend(entrada.pop().split('='))
+        aux.insert(1,'='),entrada.extend(aux)
+        entrada.reverse()
+        checknameFix(entrada,pila)
+
+""" Función que debe evaluar si tiene > en la sentencia """
+def checkCondicion(entrada, pila):
+    pass
 
 def checkDato(entrada, pila): #int, algo bool)5 
     # print('entrada checkDato : ',entrada ,' checkdatoPila : ',pila)
@@ -280,6 +354,7 @@ def checkDato(entrada, pila): #int, algo bool)5
             else: 
                 tokens['tipoDato']+=1
                 endParentesis(entrada,pila)
+
 
 def run():
     root = Tk()
