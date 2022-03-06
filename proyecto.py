@@ -33,6 +33,7 @@ def principal(sentence):
     elif sentencia[-1] in reservedAdvance:
         advanceSetence(sentencia)
     else:
+        tokens['identificadores']+=2
         outputMessageError()
         showTokens()
 
@@ -49,6 +50,7 @@ def BasicSentences(sentencia):
     else: 
         outputMessageError()
         print('ERROR : No se encuentra palabra reservada')
+        tokens['identificadores']+=1
         showTokens()
         bandera = False
     
@@ -333,6 +335,7 @@ def checkDato(entrada, pila): #int, algo bool)5
                 checkName(entrada,pila)
             else:
                 print('No se encontró un tipo')
+                tokens['identificadores']+=1
                 outputMessageError()
                 showTokens()
                 print(pila)
@@ -348,6 +351,7 @@ def checkDato(entrada, pila): #int, algo bool)5
                 else: 
                     print('Tipo no valido: ' ,entrada[-1])
                     print(pila)
+                    tokens['identificadores']+=1
                     print(tokens)
                     outputMessageError()
                     showTokens()
