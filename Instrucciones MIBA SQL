@@ -1,0 +1,15 @@
+Uso MIBA SQL.
+
+Es de suma importancia seguir las indicaciones para que las sentencias funcionen correctamente,
+de otro modo MIBA Sql contará con errores de sintaxis.
+
+new-db <name> -> Crear nueva base de datos
+
+take <name> -> Usar base de datos
+
+new-struct <name> (<name> <tipoDato>) ||  -> Crear tabla con un atributo
+new-struct <name> (<name> <tipoDato>, <name> <tipoDato> ...)   -> Crear nueva tabla con múltiples atributos
+
+supr-db <name> -> Eliminar base de datos
+
+supr-struct <name> -> Eliminar tabla

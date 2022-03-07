@@ -1,11 +1,10 @@
-from email.mime import audio
 from tkinter import ttk
 from tkinter import *
 L = ['a','b','c','d','e','f','g','h','i','j','k','l','m','n','ñ','o','p','q','r','s','t','u','v','w','x','y','z']
 D = [0,1,2,3,4,5,6,7,8,9]
 tokens = { 'reserved': 0 ,'identificadores' : 0, 'parentesisApertura': 0, 'parentesisCierre': 0, 'signo':0, 'separador':0, 'tipoDato': 0 }
 reservedBasic = ['supr-struct','new-db','supr-db','take']
-reservedAdvance = ['new-struct','supr-struct','upd', '>','f']
+reservedAdvance = ['new-struct','supr-struct',]
 tiposDato = ['int','varchar', 'bool', 'double']
 
 def deleteValuesToken():
@@ -24,9 +23,7 @@ def outputSuccessMessage():
 def showTokens():
     tokensCount.config(text=f'{tokens}')
 
-def principal(sentence):
-    aux = sentence.strip().split(' ')
-    aux.reverse()
+def runSentence(aux):
     sentencia = aux
     if sentencia[-1] in reservedBasic:
         BasicSentences(sentencia)
@@ -36,6 +33,20 @@ def principal(sentence):
         tokens['identificadores']+=2
         outputMessageError()
         showTokens()
+
+
+def principal(sentence):
+    aux = sentence.strip().split(' ')
+    if ')' in aux:
+        aux.pop()
+        aux.insert(len(aux),f'{aux[-1]})')
+        aux.pop(-2)
+        aux.reverse()
+        runSentence(aux)
+    else:
+        aux.reverse()
+        runSentence(aux)
+        
 
 def BasicSentences(sentencia):
     pila = ['$','R','L']
@@ -313,7 +324,7 @@ def checkCondicion(entrada, pila):
 
 def checkDato(entrada, pila): #int, algo bool)5 
     # print('entrada checkDato : ',entrada ,' checkdatoPila : ',pila)
-    # print('Antes del cualquier if de checkdato : ', entrada[-1],'\n')
+    print('Antes del cualquier if de checkdato : ', entrada[-1],'\n')
     if ',' in entrada[-1]:
         # print('Tiene coma pegado al tipo : ',entrada[-1])
         # tokens['tipoDato']+=1
@@ -339,7 +350,7 @@ def checkDato(entrada, pila): #int, algo bool)5
                 outputMessageError()
                 showTokens()
                 print(pila)
-                print(tokens)
+                # print(tokens)
         else:
             # print('QUE ES ENTRADA ',entrada[-1])
             if not len(entrada)< 2:
@@ -352,12 +363,20 @@ def checkDato(entrada, pila): #int, algo bool)5
                     print('Tipo no valido: ' ,entrada[-1])
                     print(pila)
                     tokens['identificadores']+=1
-                    print(tokens)
+                    # print(tokens)
                     outputMessageError()
                     showTokens()
             else: 
-                tokens['tipoDato']+=1
-                endParentesis(entrada,pila)
+                if entrada[-1] in tiposDato:
+                    tokens['tipoDato']+=1
+                    endParentesis(entrada,pila)
+                    outputSuccessMessage()
+                    showTokens()
+                else: 
+                    tokens['identificadores']+=1
+                    outputMessageError()
+                    showTokens()
+
 
 
 def run():
