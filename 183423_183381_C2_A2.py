@@ -171,10 +171,10 @@ def firstParent(entrada,pila):
         outputMessageError()
         showTokens()
         print(pila)
-        print(f'{tokens}')
+        # print(f'{tokens}')
 
 def endParentesis(entrada,pila):
-    print('###################################################################################')
+    print('###################################################################################',entrada)
     print('Parentesis Cierre')
     pila.clear()
     # print('final',entrada[-1][-1])
