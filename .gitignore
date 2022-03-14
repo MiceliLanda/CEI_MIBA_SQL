@@ -1,2 +1,2 @@
 #ignore .ini files
-*.ini
+config\.ini
