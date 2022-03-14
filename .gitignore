@@ -1,2 +1,3 @@
 #ignore .ini files
-/*.ini
+*.ini
+prueba.py
