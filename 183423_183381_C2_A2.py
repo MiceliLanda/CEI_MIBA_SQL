@@ -1,16 +1,109 @@
 from tkinter import ttk
 from tkinter import *
-L = ['a','b','c','d','e','f','g','h','i','j','k','l','m','n','ñ','o','p','q','r','s','t','u','v','w','x','y','z']
-D = [0,1,2,3,4,5,6,7,8,9]
+import pymysql as sql
+from configparser import ConfigParser
+config = ConfigParser()
+config.read("config.ini")
+server = config["mysql"]
+
 tokens = { 'reserved': 0 ,'identificadores' : 0, 'parentesisApertura': 0, 'parentesisCierre': 0, 'signo':0, 'separador':0, 'tipoDato': 0 }
 reservedBasic = ['supr-struct','new-db','supr-db','take']
-reservedAdvance = ['new-struct','supr-struct',]
+reservedAdvance = ['new-struct']
 tiposDato = ['int','varchar', 'bool', 'double']
+
+def processNS(sentencia):
+    check = len(sentencia)
+    i=0
+    entrada = []
+    for elemento in sentencia:
+        i+=1
+        elemento = elemento.strip(' ')
+
+        if len(sentencia) < 2:
+            if 'varchar' in elemento or 'bool' in elemento:
+                elemento = elemento.replace('varchar','varchar(255)')
+                elemento = elemento.replace('bool','bit')
+        else: 
+            if check == i:
+                elemento = elemento.replace('varchar','varchar(255)')
+                elemento = elemento.replace('bool','bit')
+            else:   
+                elemento = elemento.replace('bool','bit')
+                elemento = elemento.replace('varchar','varchar(255) ')
+
+        if not ')' in elemento:
+            print(elemento,'en el parentesis del not')
+            final = "".join((elemento,' '))
+            entrada.append(final)
+        else:
+            # print(elemento,'en el else parentesis del not')
+            entrada.append(elemento)
+
+    entrada = ''.join(entrada)
+    entrada = entrada.split(' ')
+    entrada.pop(0) #ELIMI
+    print(entrada,' despues del split')
+    script = f'create table {entrada.pop(0)}'
+    entrada.reverse()
+    size = round((len(entrada)/2))
+    print(size,len(entrada))
+    if len(entrada)==2:
+        script += (f' {entrada.pop()} {entrada.pop()};')
+    if len(entrada) > 3:    
+        for atri in range(size):
+            # print(atri,size-1,len(entrada)-1,entrada)
+            if atri == size-1:
+                # print('if atri == len(entrada)-1')
+                script +=(f' {entrada.pop()} {entrada.pop()};')
+                # break
+            else:
+                # print('else atri == len(entrada)-1')
+                script +=(f' {entrada.pop()} {entrada.pop()},')
+                # break
+    if len(entrada) > 2:
+        script += (f' {entrada.pop()} {entrada.pop()}{entrada.pop()};')
+
+    executar(script)
+
+def executar(valor):
+    print(valor,' valor')
+    if valor[0] in reservedBasic:
+        if valor[0] == 'new-db':
+            print(f'create database {valor[-1]}')
+            ExecuteMiba(f'create database {valor[-1]};')
+
+        if valor[0] == 'take':
+            ExecuteMiba(f'use {valor[-1]};')
+
+        if valor[0] == 'supr-struct':
+            ExecuteMiba(f'drop table {valor[-1]};')
+
+        if valor[0] == 'supr-db':
+            ExecuteMiba(f'drop database {valor[-1]};')
+    else:
+        ExecuteMiba(valor)
+
+def ExecuteMiba(query):
+    try:
+        con = sql.connect(host = server['server'],user = server['username'],password = server['password'],database = server['database'])
+        print(f'Conexion Ok')
+        try:
+            with con.cursor() as send:
+                send.execute(query)
+            con.commit()
+        finally:
+            """ Cerrar conexión """
+            con.close()
+            showExecutedMIBA('[OK] : MIBA Query Executed Successfully')
+
+    except (sql.err.OperationalError, sql.err.InternalError, sql.err.ProgrammingError, sql.err.Error, sql.err.DatabaseError,sql.err.MySQLError) as e:
+        showExecutedMIBA(f'[ERROR] : MIBA SQL: {e}')
 
 def deleteValuesToken():
     for i,clave in enumerate(tokens):
         if tokens.get(clave) > 0:
             tokens[clave] = 0
+
 def waiting():
     message.config(text='Waiting for MIBA sentence')
 
@@ -20,8 +113,18 @@ def outputMessageError():
 def outputSuccessMessage():
     message.config(text='[OK] : MIBA Sintax Correct')
 
+def showExecutedMIBA(result):
+    mibaMessage.config(text=result)
+
 def showTokens():
-    tokensCount.config(text=f'{tokens}')
+    token = f"""    \n      Tokens:\n
+                Palabras reservadas : {tokens.get('reserved')}\n
+                Identificadores : {tokens.get('identificadores')}\n
+                Parentesís de Apertura : {tokens.get('parentesisApertura')}\n
+                Separador : {tokens.get('separador')}\n
+                Tipo de Dato : {tokens.get('tipoDato')}\n
+                Parentesís de Cierre : {tokens.get('parentesisCierre')}"""
+    lblToken.insert(END,token)
 
 def runSentence(aux):
     sentencia = aux
@@ -33,7 +136,6 @@ def runSentence(aux):
         tokens['identificadores']+=2
         outputMessageError()
         showTokens()
-
 
 def principal(sentence):
     aux = sentence.strip().split(' ')
@@ -47,7 +149,6 @@ def principal(sentence):
         aux.reverse()
         runSentence(aux)
         
-
 def BasicSentences(sentencia):
     pila = ['$','R','L']
     verify = False
@@ -68,7 +169,6 @@ def BasicSentences(sentencia):
     if bandera and len(sentencia)>=1:
         sentence = sentencia
         name = list(sentence.pop())
-        # print('Entrada : ',' '.join(name))
         name.reverse()
         print(pila)
         for i in reversed(name):
@@ -93,6 +193,7 @@ def BasicSentences(sentencia):
             pila.clear(),pila.append('$'),sentence.append('$')
             outputSuccessMessage()
             showTokens()
+            executar(identificadores)
             print('\nEntrada Final : ',sentence,' Pila : ',pila,'\nTokens : ',tokens)
         else:
             outputMessageError()
@@ -174,7 +275,7 @@ def firstParent(entrada,pila):
         # print(f'{tokens}')
 
 def endParentesis(entrada,pila):
-    print('###################################################################################',entrada)
+    print('###################################################################################')
     print('Parentesis Cierre')
     pila.clear()
     # print('final',entrada[-1][-1])
@@ -185,7 +286,9 @@ def endParentesis(entrada,pila):
         print(tokens)
         outputSuccessMessage()
         showTokens()
-        print()
+        # print(identificadores,' en endparentesis')
+        # executar(identificadores)
+        processNS(identificadores)
     elif entrada[-1][-1] == ')':
         tokens['parentesisCierre']+=1
         entrada.pop()
@@ -194,6 +297,9 @@ def endParentesis(entrada,pila):
         outputSuccessMessage()
         showTokens()
         print('\nEntrada Final : ',entrada,' Pila : ',pila,'\n')
+        # print(identificadores,' en endparentesis')
+        processNS(identificadores)
+        # executar(identificadores)
         # print('parentesisCierre suma \n Ejecución Ok')j
         # print(f'Entrada end : {entrada} Pila end2 : {pila}')
     else: 
@@ -208,7 +314,7 @@ def endParentesis(entrada,pila):
 def checkName(entrada, pila): # atri int, algo bool)
     if '=' in entrada[-1]:
         pila.clear(),pila.extend(list('$)RL=RL>RL=RL'))
-        checknameFix(entrada,pila)
+        # checknameFix(entrada,pila)
     else:
         print('######################################## Name ##########################################')
         sentence = entrada
@@ -246,51 +352,6 @@ def checkName(entrada, pila): # atri int, algo bool)
             print(tokens)
     # else: tokens['identificadores'] = 0
 
-def checknameFix(entrada, pila):
-    if '=' in entrada[-1]:
-        checkSigno(entrada,pila)
-    else:
-        print('_########## ##################################### Name Fix-Struct ###############################################')
-        # print('entrada',pila)
-        sentence = entrada
-        name = list(entrada.pop())
-        name.reverse()
-        for i in reversed(name):
-            if not i.isalnum():
-                print('Error : Caracter no válido (',i,')')
-                new = ''.join(reversed(name))
-                sentence.append(new)
-                verify = False
-                break
-            else:
-                pila.pop()
-                name.pop()
-                print('Actual :',''.join(reversed(name)), '  - Verificando : ',i,' [OK]')
-                # print('Pila en función : ',pila)
-                if pila.pop() == 'R':
-                    pila.extend(list('RL'))
-                        # print('Pila Gramática
-            verify = True
-        if verify:
-            tokens['identificadores'] += 1
-            pila.pop(),pila.pop()
-            # print('\nEntrada Name eliminado : ',sentence,' Pila Name: ',pila)
-            # return entrada, pila
-            # checkDato(entrada, pila)
-            checkSigno(entrada,pila)
-        else: 
-            print('Error : Nombre inválido')
-            outputMessageError()
-            showTokens()
-            print(pila)
-            print(tokens)
-        print('entrada despues del proceso ',sentence,'  ',entrada )
-
-
-
-""" fix-struct nombre (name=valor)  -> fix-struct nombre upd ( nombre = valor )"""
-
-""" HACER UNA COMPARACION PARA VER SU SE MANDA A CHECAR DATO O A VERIFICAR EL VALOR DEL NAME DESPUES DEL IGUAL """
 def checkSeparador(entrada,pila):
     # print('Entrada chekSperador : ',entrada[-1], ' Pila check separador : ',pila)
     if len(entrada[-1]) > 1 and entrada[-1][-1] == ',': #CUANDO LLEGA CON TIPO DE DATO
@@ -304,23 +365,6 @@ def checkSeparador(entrada,pila):
         entrada.pop()
         # print('SALI DE SEPARADOR PARA ENTRAR A CHECKDATO 2-> ',entrada)
         checkDato(entrada, pila)
-
-""" Función que debe evaluar si tiene signo = """
-
-def checkSigno(entrada, pila):
-    if entrada[-1] == '=':
-        tokens['signo']+=1
-        # checkName(entrada,pila)
-    else:
-        aux = []
-        aux.extend(entrada.pop().split('='))
-        aux.insert(1,'='),entrada.extend(aux)
-        entrada.reverse()
-        checknameFix(entrada,pila)
-
-""" Función que debe evaluar si tiene > en la sentencia """
-def checkCondicion(entrada, pila):
-    pass
 
 def checkDato(entrada, pila): #int, algo bool)5 
     # print('entrada checkDato : ',entrada ,' checkdatoPila : ',pila)
@@ -377,42 +421,62 @@ def checkDato(entrada, pila): #int, algo bool)5
                     outputMessageError()
                     showTokens()
 
-
-
 def run():
     root = Tk()
     root.title("MIBA SQL Analizador")
-    root.geometry('1500x500')
+    root.geometry('1100x900')
 
     lbl = Label(root,text="Ingresa la sentencia de MIBA",font=('Roboto 16 ') )
-    lbl.pack(pady=(100,0))
-    text=Entry(root, font = ('Roboto 15'),width=50)
-    text.insert(END, "")
-    text.pack(pady=30)
+    lbl.place(x=400,y=20)
+    # lbl.pack(pady=(100,0))
+    text=Entry(root,font = ('Roboto 15'),width=60)
+    text.place(x=150,y=70)
     message2 = Label(root,font=('Roboto 14 bold'), text="Waiting for MIBA sentence...")
-    message2.pack()
-
-
+    message2.place(x=400,y=130)
+    
     def getValues():
+        aux = []
         message2.config(text='')
+        message.config(text='')
+        lblToken.delete(1.0,END)
+        mibaMessage.config(text='')
         deleteValuesToken()
+        identificadores.clear()
         sentence = text.get()
-        aux = sentence.split(' ')
+
+        """ CHECAR IF """
+
+        if '(' in sentence or ')' in sentence or ',' in sentence:
+            print('tiene signos ',aux)
+            identificadores.extend(sentence.split(','))
+        else:
+            aux = sentence.split(' ')
+            print('llena el identificador ',aux)
+            identificadores.extend(aux)
+
+
         if not len(aux) == 1:
             principal(sentence)
         else: 
-            # deleteValuesToken()
             outputMessageError()
             showTokens()
 
-    btn = Button(root,text='Analizar',bg='green',fg='white' ,padx=70,pady=8,command=getValues)
-    btn.pack(pady=30)
+    btn = Button(root,text='Analizar',bg='green',fg='white' ,height=2, padx=70,pady=8,command=getValues)
+    btn.place(x=450,y=800)
+    # btn.pack(pady=30)
     global message
-    global tokensCount
-    message = Label(root,font=('Roboto 14 bold'), text="")
-    message.pack()
-    tokensCount = Label(root,font=('Roboto 14 bold'), text='')
-    tokensCount.pack()
+    global identificadores
+    global mibaMessage
+    global lblToken
+    identificadores = []
+    lblToken = Text(root,font = ('Roboto 15 bold'),height=15,width=40)
+    lblToken.place(x=250,y=170)
+    lblToken.insert(END,'\n     Tokens:')
+    message = Label(root,font=('Roboto 16 bold'), text="")
+    message.place(x=350,y=580)
+    message.config(text='       Sintáctico:')
+    mibaMessage = Label(root,font=('Roboto 16 bold'), text="        Semántico :")
+    mibaMessage.place(x=350,y=650)
     root.mainloop()
 
 run()
