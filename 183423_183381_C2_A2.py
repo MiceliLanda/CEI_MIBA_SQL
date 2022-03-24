@@ -3,9 +3,6 @@ from tkinter import *
 import pymysql as sql
 from configparser import ConfigParser
 config = ConfigParser()
-config.read("config.ini")
-server = config["mysql"]
-
 tokens = { 'reserved': 0 ,'identificadores' : 0, 'parentesisApertura': 0, 'parentesisCierre': 0, 'signo':0, 'separador':0, 'tipoDato': 0 }
 reservedBasic = ['supr-struct','new-db','supr-db','take']
 reservedAdvance = ['new-struct']
@@ -66,6 +63,7 @@ def processNS(sentencia):
     executar(script)
 
 def executar(valor):
+    global db
     print(valor,' valor')
     if valor[0] in reservedBasic:
         if valor[0] == 'new-db':
@@ -73,7 +71,10 @@ def executar(valor):
             ExecuteMiba(f'create database {valor[-1]};')
 
         if valor[0] == 'take':
+            db = valor[-1]
             ExecuteMiba(f'use {valor[-1]};')
+            
+
 
         if valor[0] == 'supr-struct':
             ExecuteMiba(f'drop table {valor[-1]};')
@@ -85,7 +86,7 @@ def executar(valor):
 
 def ExecuteMiba(query):
     try:
-        con = sql.connect(host = server['server'],user = server['username'],password = server['password'],database = server['database'])
+        con = sql.connect(host = 'localhost',user = 'root',password = 'b@11inas',database = db)
         print(f'Conexion Ok')
         try:
             with con.cursor() as send:
@@ -424,7 +425,7 @@ def checkDato(entrada, pila): #int, algo bool)5
 def run():
     root = Tk()
     root.title("MIBA SQL Analizador")
-    root.geometry('1100x900')
+    root.geometry('800x600')
 
     lbl = Label(root,text="Ingresa la sentencia de MIBA",font=('Roboto 16 ') )
     lbl.place(x=400,y=20)
@@ -462,7 +463,7 @@ def run():
             showTokens()
 
     btn = Button(root,text='Analizar',bg='green',fg='white' ,height=2, padx=70,pady=8,command=getValues)
-    btn.place(x=450,y=800)
+    btn.place(x=100,y=600)
     # btn.pack(pady=30)
     global message
     global identificadores
