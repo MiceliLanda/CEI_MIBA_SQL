@@ -86,7 +86,7 @@ def executar(valor):
 
 def ExecuteMiba(query):
     try:
-        con = sql.connect(host = 'localhost',user = 'root',password = 'b@11inas',database = db)
+        con = sql.connect(host = 'localhost',user = 'jhonathan',password = '@Zdes7iinyy',database = db)
         print(f'Conexion Ok')
         try:
             with con.cursor() as send:
@@ -118,13 +118,13 @@ def showExecutedMIBA(result):
     mibaMessage.config(text=result)
 
 def showTokens():
-    token = f"""    \n      Tokens:\n
-                Palabras reservadas : {tokens.get('reserved')}\n
-                Identificadores : {tokens.get('identificadores')}\n
-                Parentesís de Apertura : {tokens.get('parentesisApertura')}\n
-                Separador : {tokens.get('separador')}\n
-                Tipo de Dato : {tokens.get('tipoDato')}\n
-                Parentesís de Cierre : {tokens.get('parentesisCierre')}"""
+    token = f"""Tokens:
+            Palabras reservadas : {tokens.get('reserved')}\n
+            Identificadores : {tokens.get('identificadores')}\n
+            Parentesís de Apertura : {tokens.get('parentesisApertura')}\n
+            Separador : {tokens.get('separador')}\n
+            Tipo de Dato : {tokens.get('tipoDato')}\n
+            Parentesís de Cierre : {tokens.get('parentesisCierre')}"""
     lblToken.insert(END,token)
 
 def runSentence(aux):
@@ -428,12 +428,12 @@ def run():
     root.geometry('800x600')
 
     lbl = Label(root,text="Ingresa la sentencia de MIBA",font=('Roboto 16 ') )
-    lbl.place(x=400,y=20)
+    lbl.place(x=250,y=20)
     # lbl.pack(pady=(100,0))
-    text=Entry(root,font = ('Roboto 15'),width=60)
-    text.place(x=150,y=70)
-    message2 = Label(root,font=('Roboto 14 bold'), text="Waiting for MIBA sentence...")
-    message2.place(x=400,y=130)
+    text=Entry(root,font = ('Roboto 13'),width=50)
+    text.place(x=100,y=70)
+    message2 = Label(root,font=('Roboto 12 bold'), text="Waiting for MIBA sentence...")
+    message2.place(x=250,y=128)
     
     def getValues():
         aux = []
@@ -463,23 +463,21 @@ def run():
             showTokens()
 
     btn = Button(root,text='Analizar',bg='green',fg='white' ,height=2, padx=70,pady=8,command=getValues)
-    btn.place(x=100,y=600)
+    btn.place(x=300,y=450)
     # btn.pack(pady=30)
     global message
     global identificadores
     global mibaMessage
     global lblToken
     identificadores = []
-    lblToken = Text(root,font = ('Roboto 15 bold'),height=15,width=40)
-    lblToken.place(x=250,y=170)
-    lblToken.insert(END,'\n     Tokens:')
-    message = Label(root,font=('Roboto 16 bold'), text="")
-    message.place(x=350,y=580)
-    message.config(text='       Sintáctico:')
-    mibaMessage = Label(root,font=('Roboto 16 bold'), text="        Semántico :")
-    mibaMessage.place(x=350,y=650)
+    lblToken = Text(root,font = ('Roboto 11'),height=12,width=30)
+    lblToken.place(x=250,y=150)
+    lblToken.insert(END,'\n    Tokens:')
+    message = Label(root,font=('Roboto 12 bold'), text="")
+    message.place(x=150,y=390)
+    message.config(text='Sintáctico:')
+    mibaMessage = Label(root,font=('Roboto 12 bold'), text="Semántico :")
+    mibaMessage.place(x=150,y=430)
     root.mainloop()
 
 run()
-
-
