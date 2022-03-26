@@ -1,8 +1,14 @@
+import asyncio
 from tkinter import ttk
 from tkinter import *
 import pymysql as sql
 from configparser import ConfigParser
-config = ConfigParser()
+# config = ConfigParser()
+# config.read('config.ini')
+
+config2 = ConfigParser()
+config2.read('auxiliar.ini')
+
 tokens = { 'reserved': 0 ,'identificadores' : 0, 'parentesisApertura': 0, 'parentesisCierre': 0, 'signo':0, 'separador':0, 'tipoDato': 0 }
 reservedBasic = ['supr-struct','new-db','supr-db','take']
 reservedAdvance = ['new-struct']
@@ -29,7 +35,7 @@ def processNS(sentencia):
                 elemento = elemento.replace('varchar','varchar(255) ')
 
         if not ')' in elemento:
-            print(elemento,'en el parentesis del not')
+            # print(elemento,'en el parentesis del not')
             final = "".join((elemento,' '))
             entrada.append(final)
         else:
@@ -39,11 +45,11 @@ def processNS(sentencia):
     entrada = ''.join(entrada)
     entrada = entrada.split(' ')
     entrada.pop(0) #ELIMI
-    print(entrada,' despues del split')
+    # print(entrada,' despues del split')
     script = f'create table {entrada.pop(0)}'
     entrada.reverse()
     size = round((len(entrada)/2))
-    print(size,len(entrada))
+    # print(size,len(entrada))
     if len(entrada)==2:
         script += (f' {entrada.pop()} {entrada.pop()};')
     if len(entrada) > 3:    
@@ -59,34 +65,85 @@ def processNS(sentencia):
                 # break
     if len(entrada) > 2:
         script += (f' {entrada.pop()} {entrada.pop()}{entrada.pop()};')
+    # print("script", script)
+    asyncio.run(executar(script))
 
-    executar(script)
+def aux(data):
+    dato = open('auxiliar.ini','r')
+    resto = dato.read(12)
+    dato.close()
+    nuevo = open('auxiliar.ini','w')
+    nuevo.write(f'{resto} {data}\n')
+    nuevo.close()
 
-def executar(valor):
-    global db
-    print(valor,' valor')
+def modifyArchive(valor):
+    # print('valor del archivo ',valor)
+    anterior = open('config.ini','r')
+    read = anterior.read(66)
+    anterior.close()
+
+    nuevo = open('config.ini','w')
+    nuevo.write(f'{read}\ndatabase = {valor}\n')
+    nuevo.close()
+
+async def executar(valor):
+    global datoAnterior
+    datoAnterior = ''
+    # print("Datos valor" , valor)
+    if not valor[0] in reservedBasic:
+        config = ConfigParser()
+        config.read('config.ini')
+        config2 = ConfigParser()
+        config2.read('auxiliar.ini')
+
+        if config2.get('aux','take') == config.get('mysql','database'):
+            await ExecuteMiba(valor)
+        else:
+            modifyArchive('')
+            await ExecuteMiba(valor)
+
     if valor[0] in reservedBasic:
         if valor[0] == 'new-db':
-            print(f'create database {valor[-1]}')
-            ExecuteMiba(f'create database {valor[-1]};')
-
+            config = ConfigParser()
+            config.read('config.ini')
+            modifyArchive('mysql')
+            await (ExecuteMiba(f'create database {valor[-1]};'))
         if valor[0] == 'take':
-            db = valor[-1]
-            ExecuteMiba(f'use {valor[-1]};')
+            config2 = ConfigParser()
+            config2.read('auxiliar.ini')
+            aux(valor[-1])
             
-
-
+            config = ConfigParser()
+            config.read('config.ini')
+            # print("valor..",valor[-1])
+            modifyArchive(valor[-1])
+            await(ExecuteMiba(f'use {valor[-1]};'))
         if valor[0] == 'supr-struct':
-            ExecuteMiba(f'drop table {valor[-1]};')
-
+            # config = ConfigParser()
+            # config.read('config.ini')
+            # modifyArchive(config.get("mysql","database"))
+            await(ExecuteMiba(f'drop table {valor[-1]};'))
         if valor[0] == 'supr-db':
-            ExecuteMiba(f'drop database {valor[-1]};')
-    else:
-        ExecuteMiba(valor)
+            config = ConfigParser()
+            config.read('config.ini')
+            config2 = ConfigParser()
+            config2.read('auxiliar.ini')
+            datoAnterior = config2.get('aux','take')
+            if datoAnterior == valor[-1]:
+                modifyArchive('')
+            await(ExecuteMiba(f'drop database {valor[-1]};'))
+    
+        # print('valor de db ',db)
+        # if db == '':
+        # else: showExecutedMIBA('[ERROR] : MIBA SQL : 1046 - No database selected')
 
-def ExecuteMiba(query):
+async def ExecuteMiba(query):
     try:
-        con = sql.connect(host = 'localhost',user = 'jhonathan',password = '@Zdes7iinyy',database = db)
+        print('datoAnterior : ',datoAnterior)
+        config = ConfigParser()
+        config.read('config.ini')
+        # print(f'DB ARCHIVO {config.get("mysql","database")}')
+        con = (sql.connect(host = config.get('mysql','server'),user = config.get('mysql','user'), password = config.get('mysql','password') ,database = config.get('mysql','database')))
         print(f'Conexion Ok')
         try:
             with con.cursor() as send:
@@ -98,10 +155,10 @@ def ExecuteMiba(query):
             showExecutedMIBA('[OK] : MIBA Query Executed Successfully')
 
     except (sql.err.OperationalError, sql.err.InternalError, sql.err.ProgrammingError, sql.err.Error, sql.err.DatabaseError,sql.err.MySQLError) as e:
-        showExecutedMIBA(f'[ERROR] : MIBA SQL: {e}')
+        showExecutedMIBA(f'[ERROR]xx MIBA SQL: {e}')
 
 def deleteValuesToken():
-    for i,clave in enumerate(tokens):
+    for _,clave in enumerate(tokens):
         if tokens.get(clave) > 0:
             tokens[clave] = 0
 
@@ -194,7 +251,7 @@ def BasicSentences(sentencia):
             pila.clear(),pila.append('$'),sentence.append('$')
             outputSuccessMessage()
             showTokens()
-            executar(identificadores)
+            asyncio.run(executar(identificadores))
             print('\nEntrada Final : ',sentence,' Pila : ',pila,'\nTokens : ',tokens)
         else:
             outputMessageError()
@@ -426,13 +483,21 @@ def run():
     root = Tk()
     root.title("MIBA SQL Analizador")
     root.geometry('800x600')
+    root.configure(bg='#292C6D')
 
-    lbl = Label(root,text="Ingresa la sentencia de MIBA",font=('Roboto 16 ') )
+    lbl = Label(root,bg='#292C6D',fg='white',text="Ingresa la sentencia de MIBA",font=('Roboto 16 bold') )
     lbl.place(x=250,y=20)
     # lbl.pack(pady=(100,0))
-    text=Entry(root,font = ('Roboto 13'),width=50)
+    def click(event):
+        text.config(state=NORMAL)
+        text.delete(0,END)
+    text=Entry(root,background='white',borderwidth=0,font = ('Roboto 13'),width=50)
+    text.insert(0,"  Ingrese la sentencia")
+    text.config(state=DISABLED)
+    text.bind("<Button-1>",click)
     text.place(x=100,y=70)
-    message2 = Label(root,font=('Roboto 12 bold'), text="Waiting for MIBA sentence...")
+
+    message2 = Label(root,background='#292C6D',fg='white',font=('Roboto 12 bold'), text="Waiting for MIBA sentence...")
     message2.place(x=250,y=128)
     
     def getValues():
@@ -457,26 +522,27 @@ def run():
 
 
         if not len(aux) == 1:
+            # modifyArchive('')
             principal(sentence)
         else: 
             outputMessageError()
             showTokens()
 
-    btn = Button(root,text='Analizar',bg='green',fg='white' ,height=2, padx=70,pady=8,command=getValues)
-    btn.place(x=300,y=450)
+    btn = Button(root,text='Analizar',bg='#EC255A',fg='white' ,height=2, padx=70,pady=8,command=getValues)
+    btn.place(x=300,y=480)
     # btn.pack(pady=30)
     global message
     global identificadores
     global mibaMessage
     global lblToken
     identificadores = []
-    lblToken = Text(root,font = ('Roboto 11'),height=12,width=30)
+    lblToken = Text(root,background='#292C6D',fg='white',font = ('Roboto 11'),height=12,width=30)
     lblToken.place(x=250,y=150)
     lblToken.insert(END,'\n    Tokens:')
-    message = Label(root,font=('Roboto 12 bold'), text="")
+    message = Label(root,background='#292C6D',fg='white',font=('Roboto 12 bold'), text="")
     message.place(x=150,y=390)
-    message.config(text='Sintáctico:')
-    mibaMessage = Label(root,font=('Roboto 12 bold'), text="Semántico :")
+    message.config(text='Sintáctico :')
+    mibaMessage = Label(root,background='#292C6D',fg='white',font=('Roboto 12 bold'), text="Semántico :")
     mibaMessage.place(x=150,y=430)
     root.mainloop()
 
